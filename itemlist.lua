@@ -4,6 +4,8 @@
 
     Last updated: February 03, 2026
     Update ah_gil values here when HorizonXI market prices change significantly.
+
+    Note: for items which such low market traffic they're not worth putting on AH, I've put ah_gil=0
 --]]
 
 local itemlist = {}
