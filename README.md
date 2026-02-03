@@ -2,7 +2,7 @@
 FFXI addon for AshitaXI v4 that displays basic clamming information. Bucket size & weight, countdown timer, and contents.
 
 <p align="center">
-  <img src="images/clammy.png" alt="Clammy screenshot" width="600">
+  <img src="images/Clammy.png" alt="Clammy screenshot" width="600">
 </p>
 
 Added new functionality which shows auction house prices for items which sell for more on the auction house, and NPC prices for items which NPC for more.
