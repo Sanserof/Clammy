@@ -40,12 +40,12 @@ local clammingItems = {
     { item = "Fish scales",               weight = 3,  npc_gil = 23,    ah_gil = 200,   sell_to = "NPC"   },
     { item = "Goblin armor",              weight = 6,  npc_gil = 0,     ah_gil = 0,     sell_to = "Trash" },
     { item = "Goblin mail",               weight = 6,  npc_gil = 0,     ah_gil = 1000,  sell_to = "AH"    },
-    { item = "Goblin mask",               weight = 6,  npc_gil = 0,     ah_gil = 300,   sell_to = "NPC"   },
+    { item = "Goblin mask",               weight = 6,  npc_gil = 0,     ah_gil = 300,   sell_to = "AH"   },
     { item = "Hobgoblin bread",           weight = 6,  npc_gil = 91,    ah_gil = 0,     sell_to = "NPC"   },
     { item = "Hobgoblin pie",             weight = 6,  npc_gil = 153,   ah_gil = 0,     sell_to = "NPC"   },
     { item = "Jacknife",                  weight = 11, npc_gil = 56,    ah_gil = 0,     sell_to = "NPC"   },
     { item = "Lacquer tree log",          weight = 6,  npc_gil = 3578,  ah_gil = 6000,  sell_to = "AH"    },
-    { item = "Maple log",                 weight = 6,  npc_gil = 15,    ah_gil = 300,   sell_to = "NPC"   },
+    { item = "Maple log",                 weight = 6,  npc_gil = 15,    ah_gil = 300,   sell_to = "AH"   },
     { item = "Nebimonite",                weight = 6,  npc_gil = 53,    ah_gil = 200,   sell_to = "NPC"   },
     { item = "Oxblood",                   weight = 6,  npc_gil = 13250, ah_gil = 13000, sell_to = "NPC"   },
     { item = "Pamtam kelp",               weight = 6,  npc_gil = 7,     ah_gil = 300,   sell_to = "NPC"   },
@@ -255,7 +255,6 @@ ashita.events.register('text_in', 'Clammy_HandleText', function(e)
 
                 playTone = true
                 if config.log then writeLogFile(citem.item) end
-                return
             end
         end
     end
@@ -315,17 +314,17 @@ ashita.events.register('d3d_present', 'present_cb', function()
                 if bucket[idx] > 0 then
                     local count = bucket[idx]
                     local val   = 0
-                    local color = {0.70, 0.70, 0.70, 1.0}   -- default: trash gray
+                    local color = {0.70, 0.70, 0.70, 1.0}  
 
                     if citem.sell_to == "AH" then
                         val   = citem.ah_gil * count
-                        color = {0.2, 0.9, 0.3, 1.0}        -- green
+                        color = {0.2, 0.9, 0.3, 1.0}        
                     elseif citem.sell_to == "NPC" then
                         val   = citem.npc_gil * count
-                        color = {1.0, 0.8, 0.1, 1.0}        -- yellow-orange
+                        color = {1.0, 0.8, 0.1, 1.0}       
                     else
                         val   = 0
-                        color = {0.5, 0.5, 0.5, 0.7}        -- dim gray (trash)
+                        color = {0.7, 0.7, 0.7, 1.0}        
                     end
 
                     imgui.TextColored(color, " - " .. citem.item .. " [" .. count .. "]")
