@@ -48,7 +48,6 @@ local defaultConfig = T{
     showItems = true,
     showValue = true,
     log = false,
-    tone = false,
 }
 
 local config = settings.load(defaultConfig)
@@ -68,7 +67,6 @@ local cooldown   = 0            -- Cooldown timer after finding an item
 local fileName = ('log_%s.txt'):fmt(os.date('%Y_%m_%d__%H_%M_%S'))
 local fileDir  = ('%s\\addons\\Clammy\\logs\\'):fmt(AshitaCore:GetInstallPath())
 local filePath = fileDir .. fileName
-local playTone = false
 
 -- Reset current bucket and update session stats
 local function emptyBucket()
@@ -81,14 +79,6 @@ local function emptyBucket()
 
     for idx in ipairs(clammingItems) do
         bucket[idx] = 0
-    end
-end
-
--- Play alert sound when bucket is ready
-function playSound()
-    if config.tone == true and playTone == true then
-        ashita.misc.play_sound(addon.path:append("clam.wav"))
-        playTone = false
     end
 end
 
