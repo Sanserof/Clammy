@@ -1,6 +1,8 @@
 # Clammy
 FFXI addon for AshitaXI v4 that displays basic clamming information. Bucket size & weight, countdown timer, and contents.
 
+![Clammy UI - Bucket weight, items, and estimated value](images/clammy.png)
+
 Added new functionality which shows auction house prices for items which sell for more on the auction house, and NPC prices for items which NPC for more.
 
 Contains an item list of all items you can get from clamming including: weight, NPC selling price, AH selling price and sell strategy (generally whichever is more).
