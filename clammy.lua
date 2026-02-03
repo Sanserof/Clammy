@@ -17,158 +17,327 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with Ashita.  If not, see <https://www.gnu.org/licenses/>.
-
 --]]
 
-addon.author   = 'MathMatic/DrifterX';
-addon.name     = 'Clammy';
-addon.desc     = 'Clamming calculator: displays bucket weight, items in bucket, & approximate value.';
-addon.version  = '1.2.1';
+addon.author   = 'Sanserof'
+addon.name     = 'Clammy'
+addon.desc     = 'Clamming calculator: displays bucket weight, items in bucket, & approximate value.'
+addon.version  = '1.0'
 
-require('common');
-local const = require('constants');
-local func = require('functions');
-Settings = require('settings');
+require('common')
+local imgui = require('imgui')
+local settings = require('settings')
 
+-- Full list of clamming items with sell strategy, AH prices have been observed at 03/02/2026 on HorizonXI
+local clammingItems = {
+    { item = "Bibiki slug",               weight = 3,  npc_gil = 10,    ah_gil = 0,     sell_to = "NPC"   },
+    { item = "Bibiki urchin",             weight = 6,  npc_gil = 750,   ah_gil = 0,     sell_to = "NPC"   },
+    { item = "Broken willow fishing rod", weight = 6,  npc_gil = 0,     ah_gil = 0,     sell_to = "Trash" },
+    { item = "Coral fragment",            weight = 6,  npc_gil = 1735,  ah_gil = 4000,  sell_to = "AH"    },
+    { item = "Quality crab shell",        weight = 6,  npc_gil = 3312,  ah_gil = 4000,  sell_to = "AH"    },
+    { item = "Crab shell",                weight = 6,  npc_gil = 392,   ah_gil = 300,   sell_to = "NPC"   },
+    { item = "Elm log",                   weight = 6,  npc_gil = 390,   ah_gil = 4000,  sell_to = "AH"    },
+    { item = "Fish scales",               weight = 3,  npc_gil = 23,    ah_gil = 200,   sell_to = "NPC"   },
+    { item = "Goblin armor",              weight = 6,  npc_gil = 0,     ah_gil = 0,     sell_to = "Trash" },
+    { item = "Goblin mail",               weight = 6,  npc_gil = 0,     ah_gil = 1000,  sell_to = "AH"    },
+    { item = "Goblin mask",               weight = 6,  npc_gil = 0,     ah_gil = 300,   sell_to = "NPC"   },
+    { item = "Hobgoblin bread",           weight = 6,  npc_gil = 91,    ah_gil = 0,     sell_to = "NPC"   },
+    { item = "Hobgoblin pie",             weight = 6,  npc_gil = 153,   ah_gil = 0,     sell_to = "NPC"   },
+    { item = "Jacknife",                  weight = 11, npc_gil = 56,    ah_gil = 0,     sell_to = "NPC"   },
+    { item = "Lacquer tree log",          weight = 6,  npc_gil = 3578,  ah_gil = 6000,  sell_to = "AH"    },
+    { item = "Maple log",                 weight = 6,  npc_gil = 15,    ah_gil = 300,   sell_to = "NPC"   },
+    { item = "Nebimonite",                weight = 6,  npc_gil = 53,    ah_gil = 200,   sell_to = "NPC"   },
+    { item = "Oxblood",                   weight = 6,  npc_gil = 13250, ah_gil = 13000, sell_to = "NPC"   },
+    { item = "Pamtam kelp",               weight = 6,  npc_gil = 7,     ah_gil = 300,   sell_to = "NPC"   },
+    { item = "Pebble",                    weight = 7,  npc_gil = 1,     ah_gil = 0,     sell_to = "NPC"   },
+    { item = "Petrified log",             weight = 6,  npc_gil = 2193,  ah_gil = 3300,  sell_to = "AH"    },
+    { item = "Quality pugil scales",      weight = 6,  npc_gil = 253,   ah_gil = 0,     sell_to = "NPC"   },
+    { item = "Pugil scales",              weight = 3,  npc_gil = 23,    ah_gil = 0,     sell_to = "NPC"   },
+    { item = "Seashell",                  weight = 6,  npc_gil = 29,    ah_gil = 0,     sell_to = "NPC"   },
+    { item = "Shall shell",               weight = 6,  npc_gil = 307,   ah_gil = 400,   sell_to = "NPC"   },
+    { item = "Titanictus shell",          weight = 6,  npc_gil = 357,   ah_gil = 1000,  sell_to = "AH"    },
+    { item = "Tropical clam",             weight = 20, npc_gil = 5100,  ah_gil = 6000,  sell_to = "AH"    },
+    { item = "Turtle shell",              weight = 6,  npc_gil = 1190,  ah_gil = 1300,  sell_to = "NPC"   },
+    { item = "Uragnite shell",            weight = 6,  npc_gil = 1455,  ah_gil = 2000,  sell_to = "AH"    },
+    { item = "Vongola clam",              weight = 6,  npc_gil = 192,   ah_gil = 0,     sell_to = "NPC"   },
+    { item = "White sand",                weight = 7,  npc_gil = 250,   ah_gil = 0,     sell_to = "NPC"   },
+}
+
+-- Weight threshold colors for bucket fullness warning
+local weightColor = {
+    { diff = 200, color = {1.0, 1.0, 1.0, 1.0} },
+    { diff = 35,  color = {1.0, 1.0, 0.8, 1.0} },
+    { diff = 20,  color = {1.0, 1.0, 0.4, 1.0} },
+    { diff = 11,  color = {1.0, 1.0, 0.0, 1.0} },
+    { diff = 7,   color = {1.0, 0.6, 0.0, 1.0} },
+    { diff = 6,   color = {1.0, 0.4, 0.0, 1.0} },
+    { diff = 3,   color = {1.0, 0.3, 0.0, 1.0} },
+}
+
+local bucketColor = {1.0, 1.0, 1.0, 1.0}
 
 local defaultConfig = T{
-	showItems = T{ true, },
-	showValue = T{ true, },
-	showSessionInfo = T{ true, },
-	log = T{ false, },
-	tone = T{ false, },
-	useStopTone = T{ true, },
-	trackMoonPhase = T{ true, },
-	colorWeightBasedOnValue = T{ true, },
-	hideInDifferentZone = T{ true, },
-	autoResetLog = T{ true, },
-	resetFullSession = T{ false, },
-	minutesBeforeAutoReset = T{ 120, },
-	highValue = T{ 5000 },
-	midValue = T{ 1000 },
-	lowValue = T{ 500 },
-	items = const.clammingItems,
-	splitItemsBySellType = T{ true, },
-	subtractBucketCostFromGilEarned = T{ true, },
-	showAverageTimePerBucket = T{ true, },
-	showPercentChanceToBreak = T{ true, },
-	legacyLog = T{ false, },
-	alwaysStopAtThirdBucket = T{ true, },
-	checkEquippedItem = T{ true, },
-	windowScaling = T{ 1.0, },
-	showDayOfWeek = T{ true, },
-	showClammyHealth = T{ true, },
-	showClammingAttempts = T{ true, },
+    showItems = true,
+    showValue = true,
+    log = false,
+    tone = false,
 }
-Config = Settings.load(defaultConfig);
 
-local clammy = T{
-	bucketSize = 50,
-	relativeWeight = 50,
-	percentRemaining = 0,
-	weight = 0,
-	money  = 0,
-	sessionValue = 0,
-	sessionValueNPC = 0,
-	sessionValueAH = 0,
-	bucketsPurchased = 0,
-	bucketsReceived = 0,
-	bucket = {},
-	trackingBucket = {},
-	cooldown = 0,
-	startingTime = os.clock(),
-	clammingAttempts = 0,
-	bucketStartTime = 0,
-	lastClammingAction = os.clock(),
-	sessionWasReset = false,
-	bucketAverageTime = 0,
-	bucketTimeWith = 0,
-	gilPerHour = 0,
-	gilPerHourNPC = 0,
-	gilPerHourAH = 0,
-	gilPerHourMinusBucket = 0,
-	clammingAttemptsPerHour = 0,
-	trueSessionValue = 0,
-	trueSessionValueNPC = 0,
-	trueSessionValueAH = 0,
-	hasBucket = false,
-	bucketIsBroke = false,
-	bucketShouldBeTurnedIn = false,
-	editorIsOpen = T{ false, },
-	hasHQLegs = false,
-	hasHQBody = false,
-	bodyItemId = 0,
-	legItemId = 0,
-	moonTable = T{
-		moonPhase = "",
-		moonPercent = 0,
-	},
-	vanaTime = T{
-		dayName = "",
-		dayOfWeekColor = T{
-			0, 0, 0, 0,
-		},
-		hourInt = 0,
-	},
-	bucketColor = {1.0,1.0,1.0,1.0},
-	stopSound = false,
-	items = Config.items,
-	hideInDifferentZone = Config.hideInDifferentZone,
-	fileName = ('log_%s.txt'):fmt(os.date('%Y_%m_%d__%H_%M_%S')),
-	fileNameBroken = ('log_broken_%s.txt'):fmt(os.date('%Y_%m_%d__%H_%M_%S')),
-	fileDir = ('%s\\addons\\Clammy\\logs\\'):fmt(AshitaCore:GetInstallPath()),
-	playTone = false,
-	showItemSeparator = false,
-}
-clammy.filePath = clammy.fileDir .. clammy.fileName;
-clammy.filePathBroken = clammy.fileDir .. clammy.fileNameBroken;
+local config = settings.load(defaultConfig)
 
---------------------------------------------------------------------
+-- Session tracking
+local sessionTotal   = 0        -- Total gil profit after bucket costs
+local bucketsEmptied = 0        -- Number of buckets turned in this session
+
+-- Current bucket state
+local bucketSize = 50
+local weight     = 0
+local money      = 0            -- Estimated value of current bucket (using best sell method)
+local bucket     = {}           -- Count of each item type in current bucket
+local cooldown   = 0            -- Cooldown timer after finding an item
+
+-- Logging setup
+local fileName = ('log_%s.txt'):fmt(os.date('%Y_%m_%d__%H_%M_%S'))
+local fileDir  = ('%s\\addons\\Clammy\\logs\\'):fmt(AshitaCore:GetInstallPath())
+local filePath = fileDir .. fileName
+local playTone = false
+
+-- Reset current bucket and update session stats
+local function emptyBucket()
+    sessionTotal   = sessionTotal + money - 500
+    bucketsEmptied = bucketsEmptied + 1
+    
+    bucketSize = 50
+    weight     = 0
+    money      = 0  
+
+    for idx in ipairs(clammingItems) do
+        bucket[idx] = 0
+    end
+end
+
+-- Play alert sound when bucket is ready
+function playSound()
+    if config.tone == true and playTone == true then
+        ashita.misc.play_sound(addon.path:append("clam.wav"))
+        playTone = false
+    end
+end
+
+-- Print list of AH items to chat, reminder so you don't NPC the wrong items
+local function printAHItems()
+    print("Clammy: AH items:")
+    for _, item in ipairs(clammingItems) do
+        if item.sell_to == "AH" then
+            print("  " .. item.item)
+        end
+    end
+end
+
+function openLogFile()
+    if ashita.fs.create_directory(fileDir) ~= false then
+        file = io.open(filePath, 'a')
+        if file == nil then
+            print("Clammy: Could not open log file.")
+        else
+            return file
+        end
+    end
+end
+
+function closeLogFile(file)
+    if file ~= nil then io.close(file) end
+end
+
+function writeLogFile(item)
+    local file = openLogFile()
+    if file ~= nil then
+        local fdata = ('%s, %s\n'):fmt(os.date('%Y-%m-%d %H:%M:%S'), item)
+        file:write(fdata)
+    end
+    closeLogFile(file)
+end
+
+-- Initial reset on addon load
 ashita.events.register('load', 'load_cb', function()
-	clammy = func.emptyBucket(clammy, true, true);
+    emptyBucket()
+    sessionTotal   = 0
+    bucketsEmptied = 0 
+end)
 
-end);
+ashita.events.register('unload', 'unload_cb', function() end)
 
---------------------------------------------------------------------
-ashita.events.register('unload', 'unload_cb', function()
+-- Command handler
+ashita.events.register('command', 'command_cb', function(e)
+    local args = e.command:args()
+    if #args == 0 or not args[1]:any('/clammy') then return end
+    e.blocked = true
 
-end);
-
---------------------------------------------------------------------
-ashita.events.register('command', 'command_cb', function (e)
-    -- Parse the command arguments..
-    local args = e.command:args();
-    if (#args == 0 or not args[1]:any('/clammy')) then
-		return;
+    if #args == 2 and args[2]:any('reset') then
+        emptyBucket()  
+        sessionTotal   = 0
+        bucketsEmptied = 0
+        print("Clammy: Session reset.")
+        return
     end
 
-    -- Block all related commands..
-    e.blocked = true;
-
-	clammy = func.handleChatCommands(args, clammy);
-end);
-
---------------------------------------------------------------------
-ashita.events.register('text_in', 'Clammy_HandleText', function (e)
-
-    if (e.injected == true) then
-        return;
+    if #args == 3 and args[2]:any('weight') then
+        weight = tonumber(args[3])
+        return
     end
 
-	clammy = func.handleTextIn(e, clammy);
+    if #args == 3 and args[2]:any('showvalue') then
+        config.showValue = (args[3] == "true")
+        settings.save()
+        return
+    end
 
-end);
+    if #args == 3 and args[2]:any('showitems') then
+        config.showItems = (args[3] == "true")
+        settings.save()
+        return
+    end
 
---------------------------------------------------------------------
---[[
-* event: d3d_present
-* desc : Event called when the Direct3D device is presenting a scene.
---]]
-ashita.events.register('d3d_present', 'present_cb', function ()
+    if #args == 3 and args[2]:any('log') then
+        config.log = (args[3] == "true")
+        settings.save()
+        return
+    end
 
-	if (clammy.editorIsOpen[1] == true) then
-		clammy = func.renderEditor(clammy);
-	end
+    if #args >= 2 and args[2]:any('ahlist', 'ah', 'listah') then
+        printAHItems()
+        return
+    end
 
-	clammy = func.renderClammy(clammy);
-end);
+    if #args == 3 and args[2]:any('tone') then
+        config.tone = (args[3] == "true")
+        settings.save()
+        return
+    end
+end)
+
+-- Parse incoming chat for clamming messages
+ashita.events.register('text_in', 'Clammy_HandleText', function(e)
+    if e.injected then return end
+
+    if string.match(e.message, "You return the") or
+       string.match(e.message, "All your shellfish are washed back into the sea") then
+        emptyBucket()
+        bucketColor = {1.0, 1.0, 1.0, 1.0}
+        return
+    end
+
+    if string.match(e.message, "Your clamming capacity has increased to") then
+        bucketSize = bucketSize + 50
+        bucketColor = {1.0, 1.0, 1.0, 1.0}
+        return
+    end
+
+    if string.match(e.message, "You find a") then
+        for idx, citem in ipairs(clammingItems) do
+            if string.match(string.lower(e.message), string.lower(citem.item)) then
+                weight = weight + citem.weight
+
+                local chosen_gil = 0
+                if     citem.sell_to == "AH"   then chosen_gil = citem.ah_gil
+                elseif citem.sell_to == "NPC"  then chosen_gil = citem.npc_gil
+                else                                chosen_gil = 0 end
+
+                money = money + chosen_gil
+                bucket[idx] = bucket[idx] + 1
+                cooldown = os.clock() + 10.5
+
+                for _, wc in ipairs(weightColor) do
+                    if (bucketSize - weight) < wc.diff then
+                        bucketColor = wc.color
+                    end
+                end
+
+                playTone = true
+                if config.log then writeLogFile(citem.item) end
+                return
+            end
+        end
+    end
+end)
+
+-- Main UI render loop
+ashita.events.register('d3d_present', 'present_cb', function()
+    local player = GetPlayerEntity()
+    if not player then return end
+
+    local windowSize = 300
+    imgui.SetNextWindowBgAlpha(0.8)
+    imgui.SetNextWindowSize({windowSize, -1}, ImGuiCond_Always)
+
+    if imgui.Begin('Clammy', true, bit.bor(ImGuiWindowFlags_NoDecoration)) then
+
+        -- Legend + session stats (compact line)
+        imgui.TextColored({0.2,0.9,0.3,1.0}, "AH")   imgui.SameLine()
+        imgui.TextColored({1.0,0.8,0.1,1.0}, " NPC") imgui.SameLine()
+        imgui.TextColored({0.70,0.70,0.70,1.0}, " Trash")
+        imgui.SameLine()
+        imgui.Text("  |  ")
+        imgui.SameLine()
+        imgui.Text("Total: " .. sessionTotal .. "g")
+        imgui.SameLine()
+        imgui.Text("(" .. bucketsEmptied .. ")")
+
+        imgui.Separator()
+
+        -- Bucket weight display
+        imgui.Text("Bucket Weight [" .. bucketSize .. "]:")
+        imgui.SameLine()
+        imgui.SetWindowFontScale(1.3)
+        imgui.SetCursorPosY(imgui.GetCursorPosY() - 2)
+        imgui.TextColored(bucketColor, tostring(weight))
+        imgui.SetWindowFontScale(1.0)
+        imgui.SameLine()
+        imgui.SetCursorPosX(imgui.GetCursorPosX() + imgui.GetColumnWidth() - imgui.GetStyle().FramePadding.x - imgui.CalcTextSize("[999]"))
+
+        local cdTime = math.floor(cooldown - os.clock())
+        if cdTime <= 0 then
+            imgui.TextColored({0.5, 1.0, 0.5, 1.0}, "  [*]")
+            playSound()
+        else
+            imgui.TextColored({1.0, 1.0, 0.5, 1.0}, "  [" .. cdTime .. "]")
+        end
+
+        -- Current bucket value
+        if config.showValue then
+            imgui.Text("Estimated Value: " .. money .. "g")
+        end
+
+        -- Item list with color coding
+        if config.showItems then
+            imgui.Separator()
+            for idx, citem in ipairs(clammingItems) do
+                if bucket[idx] > 0 then
+                    local count = bucket[idx]
+                    local val   = 0
+                    local color = {0.70, 0.70, 0.70, 1.0}   -- default: trash gray
+
+                    if citem.sell_to == "AH" then
+                        val   = citem.ah_gil * count
+                        color = {0.2, 0.9, 0.3, 1.0}        -- green
+                    elseif citem.sell_to == "NPC" then
+                        val   = citem.npc_gil * count
+                        color = {1.0, 0.8, 0.1, 1.0}        -- yellow-orange
+                    else
+                        val   = 0
+                        color = {0.5, 0.5, 0.5, 0.7}        -- dim gray (trash)
+                    end
+
+                    imgui.TextColored(color, " - " .. citem.item .. " [" .. count .. "]")
+                    imgui.SameLine()
+                    local valTxt = "(" .. val .. "g)"
+                    local x, _ = imgui.CalcTextSize(valTxt)
+                    imgui.SetCursorPosX(imgui.GetCursorPosX() + imgui.GetColumnWidth() - x - imgui.GetStyle().FramePadding.x)
+                    imgui.TextColored(color, valTxt)
+                end
+            end
+        end
+    end
+
+    imgui.End()
+end)
