@@ -92,16 +92,6 @@ function playSound()
     end
 end
 
--- Print list of AH items to chat, reminder so you don't NPC the wrong items
-local function printAHItems()
-    print("Clammy: AH items:")
-    for _, item in ipairs(clammingItems) do
-        if item.sell_to == "AH" then
-            print("  " .. item.item)
-        end
-    end
-end
-
 function openLogFile()
     if ashita.fs.create_directory(fileDir) ~= false then
         file = io.open(filePath, 'a')
@@ -146,11 +136,6 @@ ashita.events.register('command', 'command_cb', function(e)
         sessionTotal   = 0
         bucketsEmptied = 0
         print("Clammy: Session reset.")
-        return
-    end
-
-    if #args >= 2 and args[2]:any('ahlist', 'ah', 'listah') then
-        printAHItems()
         return
     end
 
