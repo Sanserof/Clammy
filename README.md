@@ -1,11 +1,6 @@
 # Clammy
 FFXI addon for AshitaXI v4 that displays basic clamming information. Bucket size & weight, countdown timer, and contents.
 
-### Cleaning up old config
-If you are updating this from the previous version of Clammy, please make sure to delete your old config file at:
-
-`%gameinstalldirectory%\Game\config\addons\Clammy\%charactername%_######\settings.lua`
-
 ## Commands:
 ### Options
  `/clammy` *Opens a config menu for general configs*
