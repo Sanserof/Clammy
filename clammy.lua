@@ -283,7 +283,6 @@ ashita.events.register('d3d_present', 'present_cb', function()
         local cdTime = math.floor(cooldown - os.clock())
         if cdTime <= 0 then
             imgui.TextColored({0.5, 1.0, 0.5, 1.0}, "  [*]")
-            playSound()
         else
             imgui.TextColored({1.0, 1.0, 0.5, 1.0}, "  [" .. cdTime .. "]")
         end
