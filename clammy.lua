@@ -164,7 +164,6 @@ ashita.events.register('command', 'command_cb', function(e)
         
     if #args == 2 and args[2]:any('log', 'togglelog') then
         config.log = not config.log
-        config:save()
     
         local status = config.log and "ENABLED" or "DISABLED"
         print(string.format("Clammy: Session logging is now %s", status))
