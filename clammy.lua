@@ -66,9 +66,7 @@ local cooldown   = 0            -- Cooldown timer after finding an item
 
 -- Session log setup
 local logFile = nil
-local logFileName = ('clammy_session_%s.txt'):fmt(os.date('%Y_%m_%d__%H_%M_%S'))
-local logFileDir  = ('%s\\addons\\Clammy\\logs\\'):fmt(AshitaCore:GetInstallPath())
-local logFilePath = logFileDir .. logFileName
+local logFileDir = ('%s\\addons\\Clammy\\logs\\'):fmt(AshitaCore:GetInstallPath())ashita.fs.create_directory(logFileDir)
 
 -- Ensure logs dir exists
 ashita.fs.create_directory(logFileDir)
@@ -99,13 +97,18 @@ local function writeSessionLog()
         return
     end
     
+    -- Generate fresh timestamp & filename **every time** we log
+    local timestamp = os.date('%Y_%m_%d__%H_%M_%S')
+    local logFileName = ('clammy_session_%s.txt'):fmt(timestamp)
+    local logFilePath = logFileDir .. logFileName
+    
     local endTime = os.clock()
     local duration = endTime - sessionStartTime
     local minutes = math.floor(duration / 60)
     local seconds = math.floor(duration % 60)
     local gilPerHour = (sessionTotal / duration) * 3600
     
-    logFile = io.open(logFilePath, 'w')
+    local logFile = io.open(logFilePath, 'w')
     if logFile then
         logFile:write(string.format(
             'Clammy Session Log\n' ..
@@ -121,7 +124,7 @@ local function writeSessionLog()
             minutes, seconds,
             math.floor(gilPerHour)
         ))
-        io.close(logFile)
+        logFile:close()   -- better to use :close() than io.close(file)
         print('Clammy: Session logged to ' .. logFilePath)
     else
         print('Clammy: Failed to create log file at ' .. logFilePath)
