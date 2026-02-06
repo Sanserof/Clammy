@@ -150,12 +150,14 @@ ashita.events.register('command', 'command_cb', function(e)
     e.blocked = true
 
     if #args == 2 and args[2]:any('reset') then
-        -- Log session BEFORE reset
-        writeSessionLog()
+        -- Only log if logging is enabled
+        if config.log then
+            writeSessionLog()
+        end
         
-        -- Reset everything
+        -- Reset the in-memory session stats
         emptyBucket(false)
-        sessionTotal   = 0
+        sessionTotal = 0
         bucketsEmptied = 0
         sessionStartTime = nil
         print("Clammy: Session reset.")
