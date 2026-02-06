@@ -36,7 +36,7 @@ itemlist.clammingItems = {
     { item = "Pugil scales",              weight = 3,  npc_gil = 23,    ah_gil = 0,     sell_to = "NPC"   },
     { item = "Seashell",                  weight = 6,  npc_gil = 29,    ah_gil = 0,     sell_to = "NPC"   },
     { item = "Shall shell",               weight = 6,  npc_gil = 307,   ah_gil = 400,   sell_to = "NPC"   },
-    { item = "Titanictus shell",          weight = 6,  npc_gil = 357,   ah_gil = 1000,  sell_to = "AH"    },
+    { item = "Titanictus shell",          weight = 6,  npc_gil = 357,   ah_gil = 1000,  sell_to = "NPC"    },
     { item = "Tropical clam",             weight = 20, npc_gil = 5100,  ah_gil = 6000,  sell_to = "NPC"   },
     { item = "Turtle shell",              weight = 6,  npc_gil = 1190,  ah_gil = 1300,  sell_to = "NPC"   },
     { item = "Uragnite shell",            weight = 6,  npc_gil = 1455,  ah_gil = 2000,  sell_to = "NPC"   },
