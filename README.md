@@ -11,8 +11,10 @@ Contains an item list of all items you can get from clamming including: weight, 
 Auction house prices have been observed on 03/02/2026 on HorizonXI.
 
 ## ⚙️ Commands
- `/clammy reset` *Manually clear bucket information, including total and amount of buckets*
+ `/clammy reset` *Manually clear bucket information, including total and amount of buckets. Creates a log file with session details if logging is enabled.*
+
+ `/clammy log` *Toggles logging on or off. Disabled by default.*
  
- `/clammy lookup [Item name]` *Prints the NPC and AH selling price in chat window of any item*
+ `/clammy lookup [Item name]` *Prints the NPC and AH selling price in chat window of any item.*
 
 

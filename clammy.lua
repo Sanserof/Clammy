@@ -55,6 +55,7 @@ local config = settings.load(defaultConfig)
 -- Session tracking
 local sessionTotal   = 0        -- Total gil profit after bucket costs
 local bucketsEmptied = 0        -- Number of buckets turned in this session
+local sessionStartTime = nil    -- Time of first bucket turn-in
 
 -- Current bucket state
 local bucketSize = 50
@@ -63,15 +64,22 @@ local money      = 0            -- Estimated value of current bucket (using best
 local bucket     = {}           -- Count of each item type in current bucket
 local cooldown   = 0            -- Cooldown timer after finding an item
 
--- Logging setup
-local fileName = ('log_%s.txt'):fmt(os.date('%Y_%m_%d__%H_%M_%S'))
-local fileDir  = ('%s\\addons\\Clammy\\logs\\'):fmt(AshitaCore:GetInstallPath())
-local filePath = fileDir .. fileName
+-- Session log setup
+local logFile = nil
+local logFileDir = ('%s\\addons\\Clammy\\logs\\'):fmt(AshitaCore:GetInstallPath())ashita.fs.create_directory(logFileDir)
+
+-- Ensure logs dir exists
+ashita.fs.create_directory(logFileDir)
 
 -- Reset current bucket and update session stats
-local function emptyBucket()
+local function emptyBucket(firstTurnIn)
     sessionTotal   = sessionTotal + money - 500
     bucketsEmptied = bucketsEmptied + 1
+    
+    -- Start session on FIRST turn-in only
+    if firstTurnIn and sessionStartTime == nil then
+        sessionStartTime = os.clock()
+    end
     
     bucketSize = 50
     weight     = 0
@@ -82,38 +90,58 @@ local function emptyBucket()
     end
 end
 
-function openLogFile()
-    if ashita.fs.create_directory(fileDir) ~= false then
-        file = io.open(filePath, 'a')
-        if file == nil then
-            print("Clammy: Could not open log file.")
-        else
-            return file
-        end
+-- Write session summary to log file
+local function writeSessionLog()
+    if bucketsEmptied == 0 or sessionStartTime == nil then
+        print('Clammy: No session to log (no buckets turned in).')
+        return
     end
-end
-
-function closeLogFile(file)
-    if file ~= nil then io.close(file) end
-end
-
-function writeLogFile(item)
-    local file = openLogFile()
-    if file ~= nil then
-        local fdata = ('%s, %s\n'):fmt(os.date('%Y-%m-%d %H:%M:%S'), item)
-        file:write(fdata)
+    
+    -- Generate fresh timestamp & filename **every time** we log
+    local timestamp = os.date('%Y_%m_%d__%H_%M_%S')
+    local logFileName = ('clammy_session_%s.txt'):fmt(timestamp)
+    local logFilePath = logFileDir .. logFileName
+    
+    local endTime = os.clock()
+    local duration = endTime - sessionStartTime
+    local minutes = math.floor(duration / 60)
+    local seconds = math.floor(duration % 60)
+    local gilPerHour = (sessionTotal / duration) * 3600
+    
+    local logFile = io.open(logFilePath, 'w')
+    if logFile then
+        logFile:write(string.format(
+            'Clammy Session Log\n' ..
+            '==================\n' ..
+            'Date: %s\n' ..
+            'Total Estimated Gil: %d\n' ..
+            'Buckets Used: %d\n' ..
+            'Session Duration: %d min %d sec\n' ..
+            'Gil per Hour: %d\n',
+            os.date('%Y-%m-%d %H:%M:%S'),
+            sessionTotal,
+            bucketsEmptied,
+            minutes, seconds,
+            math.floor(gilPerHour)
+        ))
+        logFile:close()   -- better to use :close() than io.close(file)
+        print('Clammy: Session logged to ' .. logFilePath)
+    else
+        print('Clammy: Failed to create log file at ' .. logFilePath)
     end
-    closeLogFile(file)
 end
 
 -- Initial reset on addon load
 ashita.events.register('load', 'load_cb', function()
-    emptyBucket()
+    emptyBucket(false)  -- Don't start session
     sessionTotal   = 0
     bucketsEmptied = 0 
+    sessionStartTime = nil
 end)
 
-ashita.events.register('unload', 'unload_cb', function() end)
+ashita.events.register('unload', 'unload_cb', function()
+    if logFile then io.close(logFile) end
+end)
 
 -- Command handler
 ashita.events.register('command', 'command_cb', function(e)
@@ -122,10 +150,27 @@ ashita.events.register('command', 'command_cb', function(e)
     e.blocked = true
 
     if #args == 2 and args[2]:any('reset') then
-        emptyBucket()  
-        sessionTotal   = 0
+        -- Only log if logging is enabled
+        if config.log then
+            writeSessionLog()
+        end
+        
+        -- Reset the in-memory session stats
+        emptyBucket(false)
+        sessionTotal = 0
         bucketsEmptied = 0
+        sessionStartTime = nil
         print("Clammy: Session reset.")
+        return
+    end
+        
+    if #args == 2 and args[2]:any('log', 'togglelog') then
+        config.log = not config.log
+        
+        -- Prints logging message
+        local status = config.log and "enabled" or "disabled"
+        print(string.format("Clammy: Session logging is now %s", status))
+            
         return
     end
 
@@ -175,7 +220,8 @@ ashita.events.register('text_in', 'Clammy_HandleText', function(e)
 
     if string.match(e.message, "You return the") or
        string.match(e.message, "All your shellfish are washed back into the sea") then
-        emptyBucket()
+        local firstTurnIn = (bucketsEmptied == 0)
+        emptyBucket(firstTurnIn)
         bucketColor = {1.0, 1.0, 1.0, 1.0}
         return
     end
@@ -207,7 +253,9 @@ ashita.events.register('text_in', 'Clammy_HandleText', function(e)
                 end
 
                 playTone = true
-                if config.log then writeLogFile(citem.item) end
+                if config.log then 
+                    -- Reuse existing log func if enabled, but new session log is separate/always-on
+                end
             end
         end
     end
@@ -250,7 +298,6 @@ ashita.events.register('d3d_present', 'present_cb', function()
         local cdTime = math.floor(cooldown - os.clock())
         if cdTime <= 0 then
             imgui.TextColored({0.5, 1.0, 0.5, 1.0}, "  [*]")
-            playSound()
         else
             imgui.TextColored({1.0, 1.0, 0.5, 1.0}, "  [" .. cdTime .. "]")
         end
