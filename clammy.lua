@@ -47,7 +47,7 @@ local bucketColor = {1.0, 1.0, 1.0, 1.0}
 local defaultConfig = T{
     showItems = true,
     showValue = true,
-    log = true,
+    log = false,
 }
 
 local config = settings.load(defaultConfig)
@@ -166,9 +166,11 @@ ashita.events.register('command', 'command_cb', function(e)
         
     if #args == 2 and args[2]:any('log', 'togglelog') then
         config.log = not config.log
-    
-        local status = config.log and "ENABLED" or "DISABLED"
+        
+        -- Prints logging message
+        local status = config.log and "enabled" or "disabled"
         print(string.format("Clammy: Session logging is now %s", status))
+            
         return
     end
 
